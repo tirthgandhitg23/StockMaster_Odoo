@@ -1,150 +1,76 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Package } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Box, Lock, Mail, User, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 export const SignUpPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    loginId: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const validatePassword = (password: string) => {
-    const rules = {
-      length: password.length >= 8 && password.length <= 16,
-      lowercase: /[a-z]/.test(password),
-      uppercase: /[A-Z]/.test(password),
-      digit: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    };
-
-    if (!rules.length) return "Password must be 8-16 characters";
-    if (!rules.lowercase) return "Password must include a lowercase letter";
-    if (!rules.uppercase) return "Password must include an uppercase letter";
-    if (!rules.digit) return "Password must include a digit";
-    if (!rules.special) return "Password must include a special character";
-    return "";
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.loginId) newErrors.loginId = "Login ID is required";
-    if (!formData.email) newErrors.email = "Email is required";
-    
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) newErrors.password = passwordError;
-
+    // PDF Req[cite: 14]: Redirected to Inventory Dashboard
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      toast.error("Passwords do not match!");
+      return;
     }
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
-      navigate("/login");
-    }
-  };
-
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    toast.success("Account created successfully!");
+    navigate("/dashboard");
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md bg-card border-border">
-        <CardHeader className="space-y-4 text-center">
-          <div className="flex justify-center">
-            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Package className="h-6 w-6 text-primary" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Box className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">Create Account</h2>
+        </div>
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div className="relative">
+              <User className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
+              <input name="name" type="text" required placeholder="Full Name" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+            </div>
+            <div className="relative">
+              <Mail className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
+              <input name="email" type="email" required placeholder="Email address" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+            </div>
+            <div className="relative">
+              <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
+              <input name="password" type="password" required placeholder="Password" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+            </div>
+            <div className="relative">
+              <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
+              <input name="confirmPassword" type="password" required placeholder="Confirm Password" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
             </div>
           </div>
-          <div>
-            <CardTitle className="text-2xl font-bold text-foreground">Create Account</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Get started with StockMaster
-            </CardDescription>
+
+          <button type="submit" className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700">
+            <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+              <ArrowRight className="h-4 w-4 text-blue-300 group-hover:text-white" />
+            </span>
+            Create Account
+          </button>
+
+          <div className="text-center mt-4">
+            <p className="text-sm text-gray-600">
+              Already have an account? <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">Sign in instead</Link>
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="loginId" className="text-foreground">Login ID</Label>
-              <Input
-                id="loginId"
-                type="text"
-                placeholder="Choose a unique login ID"
-                value={formData.loginId}
-                onChange={(e) => handleChange("loginId", e.target.value)}
-                className="bg-input border-border text-foreground"
-              />
-              {errors.loginId && <p className="text-xs text-destructive">{errors.loginId}</p>}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                className="bg-input border-border text-foreground"
-              />
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Create a strong password"
-                value={formData.password}
-                onChange={(e) => handleChange("password", e.target.value)}
-                className="bg-input border-border text-foreground"
-              />
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-              <p className="text-xs text-muted-foreground">
-                8-16 characters with uppercase, lowercase, digit, and special character
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Re-enter your password"
-                value={formData.confirmPassword}
-                onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                className="bg-input border-border text-foreground"
-              />
-              {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
-            </div>
-
-            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-              Create Account
-            </Button>
-
-            <div className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link to="/login" className="text-primary hover:underline font-medium">
-                Sign In
-              </Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        </form>
+      </div>
     </div>
   );
 };

@@ -3,8 +3,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+// AUTH PAGES IMPORTS
 import { LoginPage } from "./pages/auth/LoginPage";
 import { SignUpPage } from "./pages/auth/SignUpPage";
+import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage"; 
+
+// LAYOUT & DASHBOARD IMPORTS
+import { MainLayout } from "./layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { ProductsPage } from "./pages/products/ProductsPage";
 import { ReceiptsPage } from "./pages/operations/ReceiptsPage";
@@ -16,7 +22,6 @@ import { VendorsPage } from "./pages/vendors/VendorsPage";
 import { LocationsPage } from "./pages/locations/LocationsPage";
 import { ProfilePage } from "./pages/profile/ProfilePage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
-import { MainLayout } from "./layout/MainLayout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,9 +33,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* --- AUTHENTICATION ROUTES --- */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          {/* This is the link that was missing/broken */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           
+          {/* --- PROTECTED ROUTES --- */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
