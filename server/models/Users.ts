@@ -1,48 +1,30 @@
-// server/models/User.ts
+import mongoose from "mongoose";
 
-import mongoose, { Document, Schema, Model } from 'mongoose';
-
-// 1. TypeScript Interface
-export interface IUser extends Document {
-    username: string;
-    email: string;
-    passwordHash: string;
-    role: 'Admin' | 'Manager' | 'Staff';
-    createdAt: Date;
-    updatedAt: Date;
-}
-
-// 2. Mongoose Schema
-const UserSchema: Schema = new Schema<IUser>({
+const UserSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
     username: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        minlength: [3, 'Username must be at least 3 characters long.']
+      type: String,
+      required: false, 
     },
     email: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        // Robust validation for email format
-        match: [/.+\@.+\..+/, 'Please enter a valid email address.']
+      type: String,
+      required: true,
+      unique: true,
     },
-    passwordHash: { // Store only the hashed password
-        type: String,
-        required: true,
+    password: {
+      type: String,
+      required: true,
     },
-    role: {
-        type: String,
-        required: true,
-        enum: ['Admin', 'Manager', 'Staff'], // Enforce specific roles
-        default: 'Staff'
-    }
-}, {
-    timestamps: true // Adds createdAt and updatedAt
-});
+  },
+  { timestamps: true } // Adds createdAt and updatedAt automatically
+);
 
-// 3. Export Model
-const User: Model<IUser> = mongoose.model<IUser>('User', UserSchema);
+// FIX: Ensure we use the existing model if it exists, or create a new one
+// This prevents "OverwriteModelError"
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
+
 export default User;
