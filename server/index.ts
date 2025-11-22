@@ -5,6 +5,7 @@ import nodemailer from 'nodemailer';
 import { connectDB } from './db/connection';
 // FIX: Make sure this path points to your friend's User model file
 import User from './models/Users'; 
+import Product from "./models/Product";
 import bcrypt from 'bcrypt';
 
 // Load environment variables
@@ -150,5 +151,25 @@ const startServer = async () => {
     console.error("Failed to start server:", error);
   }
 };
+
+
+app.get("/test-product", async (req, res) => {
+  try {
+    const newProduct = await Product.create({
+      sku: "TEST001",
+      name: "Test Product",
+      unitPrice: 10,
+      currentStock: 50,
+      reorderPoint: 5
+    });
+
+    res.json(newProduct);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error });
+  }
+});
+
+
 
 startServer();

@@ -17,14 +17,18 @@ export interface IProduct extends Document {
     sku: string;
     name: string;
     description?: string;
-    category: Types.ObjectId; // Reference to the Category model
     unitPrice: number;
-    // Array of objects to store stock quantity for each warehouse
-    stockLocations: IStockLocation[]; 
+    currentStock: number;
     reorderPoint: number;
+    category?: mongoose.Types.ObjectId; // <-- add this
     createdAt: Date;
     updatedAt: Date;
+    stockLocations?: {
+        warehouseId: mongoose.Types.ObjectId;
+        quantity: number;
+    }[];
 }
+
 
 // --- 2. Mongoose Schema ---
 
@@ -46,7 +50,7 @@ const ProductSchema: Schema = new Schema<IProduct>({
     },
     category: {
         type: Schema.Types.ObjectId,
-        required: true,
+        required: false,
         ref: 'Category' // Links to the Category model
     },
     unitPrice: {
@@ -56,20 +60,25 @@ const ProductSchema: Schema = new Schema<IProduct>({
         min: [0.01, 'Unit price must be greater than zero.'] 
     },
     // --- Multi-Warehouse Stock Management ---
-    stockLocations: [{
-        warehouseId: {
-            type: Schema.Types.ObjectId,
-            ref: 'Warehouse', // Links to the new Warehouse model
-            required: true,
-        },
-        quantity: {
-            type: Number,
-            required: true,
-            // Robust input validation: stock cannot be negative at any location
-            min: [0, 'Stock quantity cannot be negative.'], 
-            default: 0
-        }
-    }],
+    stockLocations: {
+        type: [
+            {
+                warehouseId: {
+                    type: Schema.Types.ObjectId,
+                    ref: 'Warehouse', // Links to the Warehouse model
+                    required: true,
+                },
+                quantity: {
+                    type: Number,
+                    required: true,
+                    // Robust input validation: stock cannot be negative at any location
+                    min: [0, 'Stock quantity cannot be negative.'],
+                    default: 0
+                }
+            }
+        ],
+        default: []
+    },
     // ----------------------------------------
     reorderPoint: {
         type: Number,
