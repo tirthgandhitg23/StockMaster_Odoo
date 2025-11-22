@@ -1,11 +1,11 @@
-// server/index.ts
-import express, { Express, Request, Response } from "express";
-import * as dotenv from "dotenv";
-import cors from "cors"; // Required for connecting frontend to backend
-import { connectDB } from "./db/connection";
-import productRoutes from "./routes/productRoutes";
-import operationRoutes from "./routes/operationRoutes";
-import warehouseRoutes from "./routes/warehouseRoutes";
+import express, { Express, Request, Response } from 'express';
+import * as dotenv from 'dotenv';
+import cors from 'cors';
+import nodemailer from 'nodemailer';
+import { connectDB } from './db/connection';
+// FIX: Make sure this path points to your friend's User model file
+import User from './models/Users'; 
+import bcrypt from 'bcrypt';
 
 // Load environment variables from the root .env file
 // Note: You must ensure this path is correct if your setup differs.
@@ -155,5 +155,25 @@ const startServer = async () => {
     console.error("Failed to start server:", error);
   }
 };
+
+
+app.get("/test-product", async (req, res) => {
+  try {
+    const newProduct = await Product.create({
+      sku: "TEST001",
+      name: "Test Product",
+      unitPrice: 10,
+      currentStock: 50,
+      reorderPoint: 5
+    });
+
+    res.json(newProduct);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error });
+  }
+});
+
+
 
 startServer();
