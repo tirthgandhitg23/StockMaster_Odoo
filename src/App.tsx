@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // AUTH PAGES IMPORTS
 import { LoginPage } from "./pages/auth/LoginPage";
 import { SignUpPage } from "./pages/auth/SignUpPage";
-import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage"; 
+import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 
 // LAYOUT & DASHBOARD IMPORTS
 import { MainLayout } from "./layout/MainLayout";
@@ -23,7 +23,6 @@ import { LocationsPage } from "./pages/locations/LocationsPage";
 import { ProfilePage } from "./pages/profile/ProfilePage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import NotFound from "./pages/NotFound";
-import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -39,7 +38,7 @@ const App = () => (
           <Route path="/signup" element={<SignUpPage />} />
           {/* This is the link that was missing/broken */}
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          
+
           {/* --- PROTECTED ROUTES --- */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -48,7 +47,10 @@ const App = () => (
             <Route path="/operations/receipts" element={<ReceiptsPage />} />
             <Route path="/operations/deliveries" element={<DeliveriesPage />} />
             <Route path="/operations/transfers" element={<TransfersPage />} />
-            <Route path="/operations/adjustments" element={<AdjustmentsPage />} />
+            <Route
+              path="/operations/adjustments"
+              element={<AdjustmentsPage />}
+            />
             <Route path="/operations/history" element={<HistoryPage />} />
             <Route path="/vendors" element={<VendorsPage />} />
             <Route path="/locations" element={<LocationsPage />} />
@@ -56,11 +58,9 @@ const App = () => (
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
-           
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </ErrorBoundary>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
