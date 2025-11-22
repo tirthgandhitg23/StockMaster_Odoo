@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Box, Lock, Mail, User, ArrowRight, Loader2 } from "lucide-react";
+import { Box, Lock, Mail, User, ArrowRight, Loader2, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 
 export const SignUpPage = () => {
@@ -11,9 +11,10 @@ export const SignUpPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "manager" 
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -28,13 +29,15 @@ export const SignUpPage = () => {
     setIsLoading(true);
 
     try {
+      // Ensure this URL matches your backend port (5000 or 8080)
       const response = await fetch('http://localhost:5000/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          role: formData.role
         }),
       });
 
@@ -65,21 +68,77 @@ export const SignUpPage = () => {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            
+            {/* Role Selection Dropdown */}
             <div className="relative">
-              <User className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              <input name="name" type="text" required placeholder="Full Name" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+              {/* Made icon darker (text-gray-900) */}
+              <Briefcase className="absolute top-3 left-3 h-5 w-5 text-gray-900" />
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                // Added text-black explicitly
+                className="w-full pl-10 p-3 border rounded-lg bg-white text-black font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                <option value="manager">Inventory Manager</option>
+                <option value="staff">Warehouse Staff</option>
+              </select>
             </div>
+
+            {/* Name Input */}
             <div className="relative">
-              <Mail className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              <input name="email" type="email" required placeholder="Email address" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+              <User className="absolute top-3 left-3 h-5 w-5 text-gray-900" />
+              <input 
+                name="name" 
+                type="text" 
+                required 
+                placeholder="Full Name" 
+                // Added text-black and placeholder-gray-500
+                className="w-full pl-10 p-3 border rounded-lg text-black placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none" 
+                onChange={handleChange} 
+              />
             </div>
+
+            {/* Email Input */}
             <div className="relative">
-              <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              <input name="password" type="password" required placeholder="Password" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+              <Mail className="absolute top-3 left-3 h-5 w-5 text-gray-900" />
+              <input 
+                name="email" 
+                type="email" 
+                required 
+                placeholder="Email address" 
+                // Added text-black and placeholder-gray-500
+                className="w-full pl-10 p-3 border rounded-lg text-black placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none" 
+                onChange={handleChange} 
+              />
             </div>
+
+            {/* Password Input */}
             <div className="relative">
-              <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              <input name="confirmPassword" type="password" required placeholder="Confirm Password" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+              <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-900" />
+              <input 
+                name="password" 
+                type="password" 
+                required 
+                placeholder="Password" 
+                // Added text-black and placeholder-gray-500
+                className="w-full pl-10 p-3 border rounded-lg text-black placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none" 
+                onChange={handleChange} 
+              />
+            </div>
+
+            {/* Confirm Password Input */}
+            <div className="relative">
+              <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-900" />
+              <input 
+                name="confirmPassword" 
+                type="password" 
+                required 
+                placeholder="Confirm Password" 
+                // Added text-black and placeholder-gray-500
+                className="w-full pl-10 p-3 border rounded-lg text-black placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none" 
+                onChange={handleChange} 
+              />
             </div>
           </div>
 
