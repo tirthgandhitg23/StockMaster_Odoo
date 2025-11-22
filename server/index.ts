@@ -1,179 +1,145 @@
-import express, { Express, Request, Response } from 'express';
-import * as dotenv from 'dotenv';
+import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
-import { connectDB } from './db/connection';
-// FIX: Make sure this path points to your friend's User model file
-import User from './models/Users'; 
-import bcrypt from 'bcrypt';
 
-// Load environment variables from the root .env file
-// Note: You must ensure this path is correct if your setup differs.
-dotenv.config({ path: "./.env" });
+const app = express();
+const PORT = 5000;
 
-const app: Express = express();
-const PORT: number = parseInt(process.env.PORT || "5000", 10);
-
-// --- Middleware ---
 app.use(cors());
 app.use(express.json());
 
-// --- Routes ---
-app.use("/api/products", productRoutes);
-app.use("/api/operations", operationRoutes);
-app.use("/api/warehouses", warehouseRoutes);
-// --- Email Transporter ---
+// --- 1. EMAIL CONFIGURATION ---
+// REPLACE THIS WITH YOUR OWN GMAIL DETAILS
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+    user: 'stockmaster577@gmail.com', // <--- REPLACE THIS
+    pass: 'obuauvyjlerywxke'          // <--- REPLACE THIS (Not your normal password)
+  }
 });
+
+// --- 2. MOCK DATABASE ---
+let users: any[] = [
+  {
+    id: 1,
+    name: "Manager User",
+    email: "manager@example.com",
+    password: "123",
+    role: "manager"
+  },
+  {
+    id: 2,
+    name: "Staff User",
+    email: "staff@example.com",
+    password: "123",
+    role: "staff"
+  }
+];
+
+let products: any[] = [
+  {
+    id: 101,
+    name: "Sample Product",
+    category: "General",
+    price: 100,
+    stock: 50,
+    unit: "Pieces",
+    reorderPoint: 10
+  }
+];
 
 // --- ROUTES ---
 
-// 1. SIGNUP ROUTE
-app.post('/api/signup', async (req: Request, res: Response): Promise<any> => {
-  const { name, username, email, password } = req.body;
+// SIGN UP
+app.post('/api/signup', (req, res) => {
+  const { name, email, password, role } = req.body;
+  const existingUser = users.find(u => u.email === email);
+  if (existingUser) return res.status(400).json({ message: "User exists." });
 
-  console.log('Signup payload:', { name, username, email });
-
-  try {
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists. Please login." });
-    }
-
-    // Create new user
-    // Hash the password and store it in the model's `password` field
-    const passwordHash = await bcrypt.hash(password, 10);
-    // Use provided `username` if present, otherwise fall back to `name`
-    const finalUsername = username ?? name;
-    const newUser = new User({ name, username: finalUsername, email, password: passwordHash });
-    await newUser.save();
-
-    return res.status(201).json({ message: "Account created successfully" });
-
-  } catch (error) {
-    console.error("Signup Error:", error);
-    // If mongoose validation error, return readable messages
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    if (error && error.name === 'ValidationError') {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const errors = Object.values(error.errors).map((e: any) => e.message);
-      return res.status(400).json({ message: 'Validation failed', errors });
-    }
-    return res.status(500).json({ message: "Error creating account" });
-  }
+  const newUser = { 
+    id: Date.now(), 
+    name, 
+    email, 
+    password, 
+    role: role || "staff" 
+  };
+  users.push(newUser);
+  res.status(201).json({ message: "Account created!", user: newUser });
 });
 
-// 2. LOGIN ROUTE
-app.post('/api/login', async (req: Request, res: Response): Promise<any> => {
+// LOGIN
+app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
+  const user = users.find(u => u.email === email && u.password === password);
 
-  try {
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not registered. Please sign up." });
-    }
-
-    // Check password (compare plaintext with stored hash in `password`)
-    const passwordMatches = await bcrypt.compare(password, user.password as string);
-    if (!passwordMatches) {
-      return res.status(400).json({ message: "Invalid password" });
-    }
-
-    // Success
-    return res.status(200).json({ 
+  if (user) {
+    res.json({ 
       message: "Login successful", 
-      user: { name: user.username, email: user.email } 
+      token: `token-${user.id}-${Date.now()}`,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role }
     });
-
-  } catch (error) {
-    console.error("Login Error:", error);
-    return res.status(500).json({ message: "Server error" });
+  } else {
+    res.status(401).json({ message: "Invalid credentials" });
   }
 });
 
-// 3. FORGOT PASSWORD ROUTE
-app.post('/api/forgot-password', async (req: Request, res: Response): Promise<any> => {
+// GET ALL PRODUCTS
+app.get('/api/products', (req, res) => {
+  res.json(products);
+});
+
+// CREATE PRODUCT
+app.post('/api/products', (req, res) => {
+  const productData = req.body;
+  if (!productData.name) {
+    return res.status(400).json({ message: "Product Name is required" });
+  }
+  const newProduct = {
+    id: Date.now(),
+    ...productData,
+    stock: Number(productData.initialStock) || 0,
+    price: Number(productData.price) || 0,
+    reorderPoint: Number(productData.reorderPoint) || 0
+  };
+  products.push(newProduct);
+  res.status(201).json(newProduct);
+});
+
+// --- FORGOT PASSWORD (FIXED) ---
+app.post('/api/forgot-password', async (req, res) => {
   const { email } = req.body;
+  const user = users.find(u => u.email === email);
 
-  if (!email) {
-    return res.status(400).json({ message: "Email is required" });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
   }
 
+  // Generate 4-digit OTP
+  const otp = Math.floor(1000 + Math.random() * 9000);
+
+  // Email Options
+  const mailOptions = {
+    from: '"StockMaster Support" <no-reply@stockmaster.com>',
+    to: email,
+    subject: 'Password Reset OTP',
+    text: `Your OTP for password reset is: ${otp}`, 
+    html: `<b>Your OTP for password reset is: ${otp}</b>` 
+  };
+
   try {
-    // Check if user exists (Requirement: Only registered users)
-    const userExists = await User.findOne({ email });
-    
-    if (!userExists) {
-      return res.status(404).json({ message: "User not found. Please register first." });
-    }
-
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000);
-
-    // Send Email
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'StockMaster Password Reset OTP',
-      text: `Your OTP for password reset is: ${otp}`,
-    };
-
+    // --- SENDING EMAIL ---
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent to ${email} with OTP: ${otp}`);
+    console.log(`OTP sent to ${email}: ${otp}`);
     
-    // Return OTP for demo/testing
-    return res.status(200).json({ message: "OTP sent successfully", debugOtp: otp });
-
+    // We send debugOtp so your Frontend can verify it
+    res.json({ message: "Email sent successfully", debugOtp: otp });
   } catch (error) {
-    console.error("❌ Error:", error);
-    return res.status(500).json({ message: "Failed to send email" });
+    console.error("Email Error:", error);
+    res.status(500).json({ message: "Failed to send email. Check credentials in index.ts" });
   }
 });
 
-// Health Check
-app.get('/', (req: Request, res: Response) => {
-  res.status(200).send('StockMaster Backend API is running.');
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
-
-// --- Start Server ---
-const startServer = async () => {
-  try {
-    await connectDB();
-    app.listen(PORT, () => {
-      console.log(`⚡ Server is listening on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-  }
-};
-
-
-app.get("/test-product", async (req, res) => {
-  try {
-    const newProduct = await Product.create({
-      sku: "TEST001",
-      name: "Test Product",
-      unitPrice: 10,
-      currentStock: 50,
-      reorderPoint: 5
-    });
-
-    res.json(newProduct);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error });
-  }
-});
-
-
-
-startServer();

@@ -1,15 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Box, Lock, Mail, ArrowRight } from "lucide-react";
+import { Box, Lock, Mail, ArrowRight, Loader2 } from "lucide-react"; 
 import { toast } from "sonner";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [isLoading, setIsLoading] = useState(false); 
+  const [formData, setFormData] = useState({ email: "", password: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -18,7 +15,7 @@ export const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
+    
     try {
       const response = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
@@ -30,15 +27,17 @@ export const LoginPage = () => {
 
       if (response.ok) {
         toast.success("Welcome back!");
-        // Optional: Store user data
-        localStorage.setItem("user", JSON.stringify(data.user));
-        navigate("/dashboard");
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          // This now saves 'role' inside the user object
+          localStorage.setItem('user', JSON.stringify(data.user)); 
+          navigate("/dashboard");
+        }
       } else {
-        toast.error(data.message || "Login failed");
+        toast.error(data.message || "Invalid email or password");
       }
     } catch (error) {
-      console.error("Login Error:", error);
-      toast.error("Connection failed. Is the backend running?");
+      toast.error("Server connection failed.");
     } finally {
       setIsLoading(false);
     }
@@ -55,38 +54,22 @@ export const LoginPage = () => {
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Welcome back</h2>
         </div>
-
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div className="relative">
               <Mail className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              <input name="email" type="email" required placeholder="Email address" className={inputClasses} onChange={handleChange} />
+              <input name="email" type="email" required className="w-full pl-10 p-3 border rounded-lg" placeholder="Email address" onChange={handleChange} />
             </div>
             <div className="relative">
               <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              <input name="password" type="password" required placeholder="Password" className={inputClasses} onChange={handleChange} />
+              <input name="password" type="password" required className="w-full pl-10 p-3 border rounded-lg" placeholder="Password" onChange={handleChange} />
             </div>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input id="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">Remember me</label>
-            </div>
-            <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">Forgot password?</Link>
-            </div>
-          </div>
-
-          <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-            {isLoading ? "Signing in..." : "Sign in"}
+          <div className="flex justify-end text-sm"><Link to="/forgot-password" className="text-blue-600">Forgot password?</Link></div>
+          <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            {isLoading ? <Loader2 className="animate-spin" /> : "Sign in"}
           </button>
-
-          <div className="text-center mt-4">
-            <p className="text-sm text-gray-600">
-              Don't have an account? <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">Create free account</Link>
-            </p>
-          </div>
+          <div className="text-center mt-4"><Link to="/signup" className="text-blue-600">Create free account</Link></div>
         </form>
       </div>
     </div>

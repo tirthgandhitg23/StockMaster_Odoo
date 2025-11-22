@@ -2,20 +2,35 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
-// Auth Pages
+// AUTH PAGES
 import { LoginPage } from "./pages/auth/LoginPage";
 import { SignUpPage } from "./pages/auth/SignUpPage";
 import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 
-// Layout & Dashboard
+// LAYOUT & PAGES
 import { MainLayout } from "./layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 // ... other page imports ...
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// --- 1. BASIC PROTECTION (Must be Logged In) ---
+const ProtectedRoute = () => {
+  const token = localStorage.getItem("token");
+  return token ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+// --- 2. ROLE PROTECTION (Manager Only) ---
+const ManagerRoute = () => {
+  const userString = localStorage.getItem("user");
+  const user = userString ? JSON.parse(userString) : null;
+  
+  // If user is manager, let them through. If staff, send to Dashboard.
+  return user && user.role === "manager" ? <Outlet /> : <Navigate to="/dashboard" replace />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -24,18 +39,37 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* --- PUBLIC ROUTES --- */}
-          {/* Route '/' loads LoginPage first */}
-          <Route path="/" element={<LoginPage />} />
+          {/* PUBLIC */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          
-          {/* --- PROTECTED ROUTES (Wrapped in Layout) --- */}
-          <Route element={<MainLayout />}>
-            {/* If user goes to /dashboard directly, they see dashboard */}
-            <Route path="/dashboard" element={<DashboardPage />} />
-            {/* Add your other routes here (Products, Receipts, etc.) */}
+
+          {/* LOGGED IN USERS (Staff & Manager) */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
+              
+              {/* SHARED ACCESS (Both roles can see these) */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/operations/history" element={<HistoryPage />} />
+              
+              {/* STAFF SPECIFIC ACCESS (Operations) */}
+              {/* Staff perform transfers, deliveries, adjustments  */}
+              <Route path="/operations/deliveries" element={<DeliveriesPage />} />
+              <Route path="/operations/transfers" element={<TransfersPage />} />
+              <Route path="/operations/adjustments" element={<AdjustmentsPage />} />
+              <Route path="/operations/receipts" element={<ReceiptsPage />} />
+
+              {/* MANAGER ONLY ACCESS */}
+              <Route element={<ManagerRoute />}>
+                <Route path="/products" element={<ProductsPage />} /> {/* Only Manager creates products */}
+                <Route path="/vendors" element={<VendorsPage />} />
+                <Route path="/locations" element={<LocationsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
+
+            </Route>
           </Route>
 
           <Route path="*" element={<NotFound />} />
