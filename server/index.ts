@@ -5,19 +5,23 @@ import nodemailer from 'nodemailer';
 import { connectDB } from './db/connection';
 // FIX: Make sure this path points to your friend's User model file
 import User from './models/Users'; 
-import Product from "./models/Product";
 import bcrypt from 'bcrypt';
 
-// Load environment variables
-dotenv.config(); 
+// Load environment variables from the root .env file
+// Note: You must ensure this path is correct if your setup differs.
+dotenv.config({ path: "./.env" });
 
 const app: Express = express();
-const PORT: number = parseInt(process.env.PORT || '5000', 10);
+const PORT: number = parseInt(process.env.PORT || "5000", 10);
 
 // --- Middleware ---
 app.use(cors());
 app.use(express.json());
 
+// --- Routes ---
+app.use("/api/products", productRoutes);
+app.use("/api/operations", operationRoutes);
+app.use("/api/warehouses", warehouseRoutes);
 // --- Email Transporter ---
 const transporter = nodemailer.createTransport({
   service: 'gmail',
