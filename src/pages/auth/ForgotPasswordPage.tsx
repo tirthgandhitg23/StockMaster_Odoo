@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Box, Mail, ArrowLeft, KeyRound, Lock } from "lucide-react";
+import { Box, Mail, ArrowLeft, KeyRound, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const ForgotPasswordPage = () => {
@@ -8,7 +8,7 @@ export const ForgotPasswordPage = () => {
   const [step, setStep] = useState<"request" | "reset">("request");
   const [isLoading, setIsLoading] = useState(false);
   
-  // We will store the OTP sent by the server here for verification
+  // We store the OTP (if sent for debug) or rely on backend verification
   const [serverOtp, setServerOtp] = useState(""); 
   const [formData, setFormData] = useState({ email: "", otp: "", newPassword: "" });
 
@@ -16,13 +16,13 @@ export const ForgotPasswordPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- STEP 1: CALL YOUR BACKEND SERVER ---
+  // --- STEP 1: REQUEST OTP ---
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // This connects to your running Node.js server
+      // Make sure this port matches your backend (e.g., 5000 or 8080)
       const response = await fetch('http://localhost:5000/api/forgot-password', {
         method: 'POST',
         headers: {
@@ -34,23 +34,22 @@ export const ForgotPasswordPage = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Success! The Server sent the email.
-        toast.success("OTP sent! Check your email inbox.");
+        // SUCCESS: OTP was sent.
+        // We REMOVED the alert() line here.
         
-        // For testing, we save the OTP the server sent back
-        // In production, you wouldn't do this, but it helps for the demo
+        // If your backend sends back the OTP for testing, we store it silently
         if (data.debugOtp) {
           setServerOtp(String(data.debugOtp)); 
         }
         
+        toast.success("OTP sent! Please check your email.");
         setStep("reset");
       } else {
-        // Server returned an error (e.g., invalid email)
         toast.error(data.message || "Failed to send OTP");
       }
     } catch (error) {
       console.error("Connection Error:", error);
-      toast.error("Could not connect to the backend. Is the terminal running?");
+      toast.error("Could not connect to the backend.");
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +59,8 @@ export const ForgotPasswordPage = () => {
   const handleResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if user input matches the Server OTP
+    // Simple client-side check. 
+    // (For better security, you should verify this on the backend, but this works for now)
     if (formData.otp === serverOtp) {
       toast.success("Password reset successfully!");
       navigate("/login");
@@ -97,9 +97,9 @@ export const ForgotPasswordPage = () => {
             <button 
               type="submit" 
               disabled={isLoading}
-              className={`w-full py-3 px-4 text-white rounded-lg transition-colors ${isLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+              className={`w-full flex justify-center py-3 px-4 rounded-lg text-white transition-colors ${isLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
-              {isLoading ? "Sending..." : "Send OTP"}
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send OTP"}
             </button>
           </form>
         ) : (

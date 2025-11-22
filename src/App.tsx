@@ -2,14 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 
-// AUTH PAGES IMPORTS
+// AUTH PAGES
 import { LoginPage } from "./pages/auth/LoginPage";
 import { SignUpPage } from "./pages/auth/SignUpPage";
 import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 
-// LAYOUT & DASHBOARD IMPORTS
+// LAYOUT & DASHBOARD
 import { MainLayout } from "./layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { ProductsPage } from "./pages/products/ProductsPage";
@@ -26,6 +26,13 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// --- SECURITY WRAPPER ---
+// This checks if a token exists. If not, it kicks the user back to Login.
+const ProtectedRoute = () => {
+  const token = localStorage.getItem("token");
+  return token ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -33,29 +40,28 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* --- AUTHENTICATION ROUTES --- */}
+          {/* --- PUBLIC ROUTES --- */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
-          {/* This is the link that was missing/broken */}
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* --- PROTECTED ROUTES --- */}
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/operations/receipts" element={<ReceiptsPage />} />
-            <Route path="/operations/deliveries" element={<DeliveriesPage />} />
-            <Route path="/operations/transfers" element={<TransfersPage />} />
-            <Route
-              path="/operations/adjustments"
-              element={<AdjustmentsPage />}
-            />
-            <Route path="/operations/history" element={<HistoryPage />} />
-            <Route path="/vendors" element={<VendorsPage />} />
-            <Route path="/locations" element={<LocationsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+          {/* Any route inside here requires a login token */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/operations/receipts" element={<ReceiptsPage />} />
+              <Route path="/operations/deliveries" element={<DeliveriesPage />} />
+              <Route path="/operations/transfers" element={<TransfersPage />} />
+              <Route path="/operations/adjustments" element={<AdjustmentsPage />} />
+              <Route path="/operations/history" element={<HistoryPage />} />
+              <Route path="/vendors" element={<VendorsPage />} />
+              <Route path="/locations" element={<LocationsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<NotFound />} />

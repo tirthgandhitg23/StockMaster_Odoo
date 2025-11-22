@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Box, Lock, Mail, User, ArrowRight } from "lucide-react";
+import { Box, Lock, Mail, User, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const SignUpPage = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -16,15 +17,40 @@ export const SignUpPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // PDF Req[cite: 14]: Redirected to Inventory Dashboard
+    
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
     }
-    toast.success("Account created successfully!");
-    navigate("/dashboard");
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Account created! Please login.");
+        navigate("/login");
+      } else {
+        toast.error(data.message || "Signup failed");
+      }
+    } catch (error) {
+      toast.error("Server error. Is backend running?");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,11 +83,11 @@ export const SignUpPage = () => {
             </div>
           </div>
 
-          <button type="submit" className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700">
-            <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-              <ArrowRight className="h-4 w-4 text-blue-300 group-hover:text-white" />
+          <button type="submit" disabled={isLoading} className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700">
+             <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : <ArrowRight className="h-4 w-4 text-blue-300 group-hover:text-white" />}
             </span>
-            Create Account
+            {isLoading ? "Creating..." : "Create Account"}
           </button>
 
           <div className="text-center mt-4">
