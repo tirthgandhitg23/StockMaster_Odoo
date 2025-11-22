@@ -56,9 +56,13 @@ export const SignUpPage = () => {
     }
   };
 
+  // SHARED STYLES: Ensures text is Dark Gray (gray-900) and background is White
+  const inputClasses = "appearance-none block w-full pl-10 px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm";
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+        
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
             <Box className="h-8 w-8 text-white" />
@@ -151,7 +155,10 @@ export const SignUpPage = () => {
 
           <div className="text-center mt-4">
             <p className="text-sm text-gray-600">
-              Already have an account? <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">Sign in instead</Link>
+              Already have an account?{" "}
+              <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                Sign in
+              </Link>
             </p>
           </div>
         </form>

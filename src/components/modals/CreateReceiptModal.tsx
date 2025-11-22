@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { BaseModal } from "./BaseModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { mockVendors, mockProducts, mockLocations } from "@/data/mockData";
 
@@ -19,11 +25,20 @@ interface CreateReceiptModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalProps) => {
+export const CreateReceiptModal = ({
+  open,
+  onOpenChange,
+}: CreateReceiptModalProps) => {
   const [vendorId, setVendorId] = useState("");
+  const [vendors, setVendors] = useState<typeof mockVendors>(mockVendors);
+  const [products, setProducts] = useState<typeof mockProducts>(mockProducts);
+  const [locations, setLocations] =
+    useState<typeof mockLocations>(mockLocations);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<ReceiptItem[]>([{ productId: "", quantity: 0, locationId: "" }]);
+  const [items, setItems] = useState<ReceiptItem[]>([
+    { productId: "", quantity: 0, locationId: "" },
+  ]);
 
   const addItem = () => {
     setItems([...items, { productId: "", quantity: 0, locationId: "" }]);
@@ -33,7 +48,11 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const updateItem = (index: number, field: keyof ReceiptItem, value: string | number) => {
+  const updateItem = (
+    index: number,
+    field: keyof ReceiptItem,
+    value: string | number
+  ) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
@@ -41,9 +60,69 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Receipt data:", { vendorId, date, items, notes });
-    onOpenChange(false);
+    const API_BASE =
+      (import.meta.env && (import.meta.env.VITE_API_URL as string)) ||
+      `http://${window.location.hostname}:5000`;
+
+    const payload = {
+      vendor: vendorId,
+      date,
+      items: items.map((it) => ({
+        productId: it.productId,
+        quantity: it.quantity,
+        locationId: it.locationId,
+      })),
+      notes,
+      status: "waiting",
+    };
+
+    fetch(`${API_BASE}/api/operations/receipts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        const text = await res.text();
+        let body: any = null;
+        try {
+          body = text ? JSON.parse(text) : null;
+        } catch {
+          body = null;
+        }
+        if (!res.ok)
+          throw new Error(body?.message || text || `HTTP ${res.status}`);
+        return body;
+      })
+      .then((data) => {
+        window.dispatchEvent(
+          new CustomEvent("operation:created", { detail: data.operation })
+        );
+        onOpenChange(false);
+      })
+      .catch((err) => {
+        console.error("Receipt create failed", err);
+        alert("Error creating receipt: " + err.message);
+      });
   };
+
+  useEffect(() => {
+    const API_BASE =
+      (import.meta.env && (import.meta.env.VITE_API_URL as string)) ||
+      `http://${window.location.hostname}:5000`;
+    // fetch products and warehouses; fall back to mocks
+    fetch(`${API_BASE}/api/products`)
+      .then((r) => r.json())
+      .then((list) => {
+        if (Array.isArray(list)) setProducts(list);
+      })
+      .catch(() => {});
+    fetch(`${API_BASE}/api/warehouses`)
+      .then((r) => r.json())
+      .then((list) => {
+        if (Array.isArray(list)) setLocations(list);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <BaseModal
@@ -55,14 +134,23 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
       <form onSubmit={handleSubmit} className="space-y-4 mt-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="vendor" className="text-foreground">Vendor</Label>
+            <Label htmlFor="vendor" className="text-foreground">
+              Vendor
+            </Label>
             <Select value={vendorId} onValueChange={setVendorId} required>
               <SelectTrigger className="bg-input border-border text-foreground">
                 <SelectValue placeholder="Select vendor" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border">
-                {mockVendors.map((vendor) => (
-                  <SelectItem key={vendor.id} value={vendor.id}>
+                {vendors.map((vendor) => (
+                  <SelectItem
+                    key={
+                      (vendor as any).id || (vendor as any)._id || vendor.name
+                    }
+                    value={
+                      (vendor as any)._id || (vendor as any).id || vendor.name
+                    }
+                  >
                     {vendor.name}
                   </SelectItem>
                 ))}
@@ -70,7 +158,9 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-foreground">Date</Label>
+            <Label htmlFor="date" className="text-foreground">
+              Date
+            </Label>
             <Input
               id="date"
               type="date"
@@ -85,26 +175,40 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-foreground">Items</Label>
-            <Button type="button" size="sm" onClick={addItem} variant="outline" className="border-border">
+            <Button
+              type="button"
+              size="sm"
+              onClick={addItem}
+              variant="outline"
+              className="border-border"
+            >
               <Plus className="h-4 w-4 mr-1" />
               Add Item
             </Button>
           </div>
 
           {items.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 bg-secondary/20 rounded-md">
+            <div
+              key={index}
+              className="grid grid-cols-12 gap-2 items-end p-3 bg-secondary/20 rounded-md"
+            >
               <div className="col-span-5 space-y-1">
                 <Label className="text-xs text-foreground">Product</Label>
                 <Select
                   value={item.productId}
-                  onValueChange={(value) => updateItem(index, "productId", value)}
+                  onValueChange={(value) =>
+                    updateItem(index, "productId", value)
+                  }
                 >
                   <SelectTrigger className="bg-input border-border text-foreground">
                     <SelectValue placeholder="Select product" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
-                    {mockProducts.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
+                    {products.map((product: any) => (
+                      <SelectItem
+                        key={product._id || product.id}
+                        value={product._id || product.id}
+                      >
                         {product.name}
                       </SelectItem>
                     ))}
@@ -117,7 +221,9 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
                   type="number"
                   min="1"
                   value={item.quantity || ""}
-                  onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value))}
+                  onChange={(e) =>
+                    updateItem(index, "quantity", parseInt(e.target.value))
+                  }
                   className="bg-input border-border text-foreground"
                 />
               </div>
@@ -125,14 +231,19 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
                 <Label className="text-xs text-foreground">Location</Label>
                 <Select
                   value={item.locationId}
-                  onValueChange={(value) => updateItem(index, "locationId", value)}
+                  onValueChange={(value) =>
+                    updateItem(index, "locationId", value)
+                  }
                 >
                   <SelectTrigger className="bg-input border-border text-foreground">
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border">
-                    {mockLocations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
+                    {locations.map((location: any) => (
+                      <SelectItem
+                        key={location._id || location.id || location.name}
+                        value={location._id || location.id || location.name}
+                      >
                         {location.name}
                       </SelectItem>
                     ))}
@@ -156,7 +267,9 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="notes" className="text-foreground">Notes (Optional)</Label>
+          <Label htmlFor="notes" className="text-foreground">
+            Notes (Optional)
+          </Label>
           <Textarea
             id="notes"
             value={notes}
@@ -167,10 +280,18 @@ export const CreateReceiptModal = ({ open, onOpenChange }: CreateReceiptModalPro
         </div>
 
         <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-border">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="border-border"
+          >
             Cancel
           </Button>
-          <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button
+            type="submit"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             Create Receipt
           </Button>
         </div>

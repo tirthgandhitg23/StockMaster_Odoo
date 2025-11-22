@@ -12,16 +12,7 @@ import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 // LAYOUT & PAGES
 import { MainLayout } from "./layout/MainLayout";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
-import { ProductsPage } from "./pages/products/ProductsPage";
-import { ReceiptsPage } from "./pages/operations/ReceiptsPage";
-import { DeliveriesPage } from "./pages/operations/DeliveriesPage";
-import { TransfersPage } from "./pages/operations/TransfersPage";
-import { AdjustmentsPage } from "./pages/operations/AdjustmentsPage";
-import { HistoryPage } from "./pages/operations/HistoryPage";
-import { VendorsPage } from "./pages/vendors/VendorsPage";
-import { LocationsPage } from "./pages/locations/LocationsPage";
-import { ProfilePage } from "./pages/profile/ProfilePage";
-import { SettingsPage } from "./pages/settings/SettingsPage";
+// ... other page imports ...
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

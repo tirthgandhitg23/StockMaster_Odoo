@@ -3,7 +3,13 @@ import { BaseModal } from "./BaseModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { mockProducts, mockLocations } from "@/data/mockData";
 
@@ -12,7 +18,10 @@ interface CreateAdjustmentModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentModalProps) => {
+export const CreateAdjustmentModal = ({
+  open,
+  onOpenChange,
+}: CreateAdjustmentModalProps) => {
   const [formData, setFormData] = useState({
     productId: "",
     locationId: "",
@@ -21,25 +30,94 @@ export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentMo
     reason: "",
   });
 
-  const difference = formData.countedQty ? parseInt(formData.countedQty) - formData.systemQty : 0;
+  const [products, setProducts] = useState<typeof mockProducts>(mockProducts);
+  const [locations, setLocations] =
+    useState<typeof mockLocations>(mockLocations);
+
+  const difference = formData.countedQty
+    ? parseInt(formData.countedQty) - formData.systemQty
+    : 0;
 
   useEffect(() => {
     if (formData.productId && formData.locationId) {
-      const product = mockProducts.find((p) => p.id === formData.productId);
+      const product = products.find(
+        (p: any) => (p._id || p.id) === formData.productId
+      );
       if (product) {
-        setFormData((prev) => ({
-          ...prev,
-          systemQty: product.stockByLocation[formData.locationId] || 0,
-        }));
+        // products from API have `stockLocations` array; try to find matching warehouse
+        const locEntry = (product.stockLocations || []).find(
+          (sl: any) =>
+            (sl.warehouseId &&
+              (sl.warehouseId._id || sl.warehouseId).toString() ===
+                formData.locationId) ||
+            sl.warehouseId?.toString() === formData.locationId
+        );
+        const qty = locEntry ? locEntry.quantity || 0 : 0;
+        setFormData((prev) => ({ ...prev, systemQty: qty }));
       }
     }
   }, [formData.productId, formData.locationId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Adjustment data:", { ...formData, difference });
-    onOpenChange(false);
+    const API_BASE =
+      (import.meta.env && (import.meta.env.VITE_API_URL as string)) ||
+      `http://${window.location.hostname}:5000`;
+    const payload = {
+      productId: formData.productId,
+      locationId: formData.locationId,
+      systemQty: formData.systemQty,
+      countedQty: parseInt(formData.countedQty || "0", 10),
+      reason: formData.reason,
+      status: "completed",
+    };
+
+    fetch(`${API_BASE}/api/operations/adjustments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        const text = await res.text();
+        let body: any = null;
+        try {
+          body = text ? JSON.parse(text) : null;
+        } catch {
+          body = null;
+        }
+        if (!res.ok)
+          throw new Error(body?.message || text || `HTTP ${res.status}`);
+        return body;
+      })
+      .then((data) => {
+        window.dispatchEvent(
+          new CustomEvent("operation:created", { detail: data.operation })
+        );
+        onOpenChange(false);
+      })
+      .catch((err) => {
+        console.error("Adjustment create failed", err);
+        alert("Error creating adjustment: " + err.message);
+      });
   };
+
+  useEffect(() => {
+    const API_BASE =
+      (import.meta.env && (import.meta.env.VITE_API_URL as string)) ||
+      `http://${window.location.hostname}:5000`;
+    fetch(`${API_BASE}/api/products`)
+      .then((r) => r.json())
+      .then((list) => {
+        if (Array.isArray(list)) setProducts(list);
+      })
+      .catch(() => {});
+    fetch(`${API_BASE}/api/warehouses`)
+      .then((r) => r.json())
+      .then((list) => {
+        if (Array.isArray(list)) setLocations(list);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <BaseModal
@@ -51,18 +129,25 @@ export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentMo
       <form onSubmit={handleSubmit} className="space-y-4 mt-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="product" className="text-foreground">Product</Label>
+            <Label htmlFor="product" className="text-foreground">
+              Product
+            </Label>
             <Select
               value={formData.productId}
-              onValueChange={(value) => setFormData({ ...formData, productId: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, productId: value })
+              }
               required
             >
               <SelectTrigger className="bg-input border-border text-foreground">
                 <SelectValue placeholder="Select product" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border">
-                {mockProducts.map((product) => (
-                  <SelectItem key={product.id} value={product.id}>
+                {products.map((product: any) => (
+                  <SelectItem
+                    key={product._id || product.id}
+                    value={product._id || product.id}
+                  >
                     {product.name}
                   </SelectItem>
                 ))}
@@ -70,18 +155,25 @@ export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentMo
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="location" className="text-foreground">Location</Label>
+            <Label htmlFor="location" className="text-foreground">
+              Location
+            </Label>
             <Select
               value={formData.locationId}
-              onValueChange={(value) => setFormData({ ...formData, locationId: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, locationId: value })
+              }
               required
             >
               <SelectTrigger className="bg-input border-border text-foreground">
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border">
-                {mockLocations.map((location) => (
-                  <SelectItem key={location.id} value={location.id}>
+                {locations.map((location: any) => (
+                  <SelectItem
+                    key={location._id || location.id || location.name}
+                    value={location._id || location.id || location.name}
+                  >
                     {location.name}
                   </SelectItem>
                 ))}
@@ -92,7 +184,9 @@ export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentMo
 
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="systemQty" className="text-foreground">System Qty</Label>
+            <Label htmlFor="systemQty" className="text-foreground">
+              System Qty
+            </Label>
             <Input
               id="systemQty"
               type="number"
@@ -102,13 +196,17 @@ export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentMo
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="countedQty" className="text-foreground">Counted Qty</Label>
+            <Label htmlFor="countedQty" className="text-foreground">
+              Counted Qty
+            </Label>
             <Input
               id="countedQty"
               type="number"
               min="0"
               value={formData.countedQty}
-              onChange={(e) => setFormData({ ...formData, countedQty: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, countedQty: e.target.value })
+              }
               required
               className="bg-input border-border text-foreground"
             />
@@ -124,17 +222,22 @@ export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentMo
                   : "text-foreground bg-muted"
               }`}
             >
-              {difference > 0 ? "+" : ""}{difference}
+              {difference > 0 ? "+" : ""}
+              {difference}
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="reason" className="text-foreground">Reason</Label>
+          <Label htmlFor="reason" className="text-foreground">
+            Reason
+          </Label>
           <Textarea
             id="reason"
             value={formData.reason}
-            onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, reason: e.target.value })
+            }
             placeholder="Explain the reason for adjustment"
             className="bg-input border-border text-foreground"
             rows={3}
@@ -142,10 +245,18 @@ export const CreateAdjustmentModal = ({ open, onOpenChange }: CreateAdjustmentMo
         </div>
 
         <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-border">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="border-border"
+          >
             Cancel
           </Button>
-          <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button
+            type="submit"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             Save Adjustment
           </Button>
         </div>

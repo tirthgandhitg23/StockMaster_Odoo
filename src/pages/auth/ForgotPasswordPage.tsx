@@ -10,7 +10,13 @@ export const ForgotPasswordPage = () => {
   
   // We store the OTP (if sent for debug) or rely on backend verification
   const [serverOtp, setServerOtp] = useState(""); 
-  const [formData, setFormData] = useState({ email: "", otp: "", newPassword: "" });
+  
+  const [formData, setFormData] = useState({ 
+    email: "", 
+    otp: "", 
+    newPassword: "", 
+    confirmPassword: "" 
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,9 +31,7 @@ export const ForgotPasswordPage = () => {
       // Make sure this port matches your backend (e.g., 5000 or 8080)
       const response = await fetch('http://localhost:5000/api/forgot-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email }),
       });
 
@@ -55,8 +59,8 @@ export const ForgotPasswordPage = () => {
     }
   };
 
-  // --- STEP 2: VERIFY OTP ---
-  const handleResetPassword = (e: React.FormEvent) => {
+  // 2. Verify OTP & Update Password
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Simple client-side check. 
@@ -69,8 +73,10 @@ export const ForgotPasswordPage = () => {
     }
   };
 
+  const inputClasses = "appearance-none block w-full pl-10 px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg border border-gray-100">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -82,17 +88,11 @@ export const ForgotPasswordPage = () => {
         </div>
 
         {step === "request" ? (
+          // STEP 1 FORM
           <form className="mt-8 space-y-6" onSubmit={handleRequestOTP}>
             <div className="relative">
               <Mail className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-              <input 
-                name="email" 
-                type="email" 
-                required 
-                placeholder="Enter your email" 
-                className="w-full pl-10 p-3 border rounded-lg" 
-                onChange={handleChange} 
-              />
+              <input name="email" type="email" required placeholder="Enter your email" className={inputClasses} onChange={handleChange} />
             </div>
             <button 
               type="submit" 
@@ -103,26 +103,36 @@ export const ForgotPasswordPage = () => {
             </button>
           </form>
         ) : (
+          // STEP 2 FORM
           <form className="mt-8 space-y-6" onSubmit={handleResetPassword}>
             <div className="space-y-4">
+              {/* OTP Input */}
               <div className="relative">
                 <KeyRound className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-                <input name="otp" type="text" required placeholder="Enter OTP Code" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+                <input name="otp" type="text" required placeholder="Enter OTP Code" className={inputClasses} onChange={handleChange} />
               </div>
+              
+              {/* New Password */}
               <div className="relative">
                 <Lock className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
-                <input name="newPassword" type="password" required placeholder="New Password" className="w-full pl-10 p-3 border rounded-lg" onChange={handleChange} />
+                <input name="newPassword" type="password" required placeholder="New Password" className={inputClasses} onChange={handleChange} />
+              </div>
+
+              {/* Confirm New Password */}
+              <div className="relative">
+                <CheckCircle className="absolute top-3 left-3 h-5 w-5 text-gray-400" />
+                <input name="confirmPassword" type="password" required placeholder="Confirm New Password" className={inputClasses} onChange={handleChange} />
               </div>
             </div>
-            <button type="submit" className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Reset Password
+
+            <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              {isLoading ? "Updating..." : "Reset Password"}
             </button>
           </form>
         )}
+        
         <div className="text-center mt-4">
-          <Link to="/login" className="flex items-center justify-center text-sm text-gray-600 hover:text-blue-600">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Sign in
-          </Link>
+          <Link to="/login" className="text-sm text-blue-600 hover:underline">Back to Login</Link>
         </div>
       </div>
     </div>
